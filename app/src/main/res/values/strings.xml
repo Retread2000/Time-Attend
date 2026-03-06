@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Time Attend</string>
+    <string name="status_clocked_in">Status: Clocked In</string>
+    <string name="status_not_clocked_in">Status: Not Clocked In</string>
+    <string name="btn_clock_in">Clock In</string>
+    <string name="btn_clock_out">Clock Out</string>
+    <string name="msg_clocked_in">Clocked In</string>
+    <string name="msg_clocked_out">Clocked Out</string>
+    <string name="admin_access">Admin Access</string>
+    <string name="enter_password">Enter Admin Password</string>
+    <string name="exit_kiosk">Exit Kiosk Mode</string>
+    <string name="invalid_password">Invalid Password</string>
+    <string name="cancel">Cancel</string>
+</resources>
