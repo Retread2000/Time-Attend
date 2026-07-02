@@ -9,7 +9,6 @@ import android.app.usage.UsageStatsManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -27,24 +26,29 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    private static final String PREFS_NAME = "TimeAttendPrefs";
-    private static final String KEY_IS_CLOCKED_IN = "isClockedIn";
     private static final String ADMIN_PASSWORD = "1234";
 
     private TextView statusText;
+    private EditText pinInput;
     private Button btnClockIn;
     private Button btnClockOut;
-    private boolean isClockedIn = false;
-    private SharedPreferences prefs;
 
     private DevicePolicyManager dpm;
     private ComponentName deviceAdmin;
 
+    // Database fields
+    private AppDatabase db;
+    private AttendanceDao attendanceDao;
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
     private final Handler lockHandler = new Handler(Looper.getMainLooper());
+
     private final Runnable lockRunnable = new Runnable() {
         @Override
         public void run() {
@@ -58,32 +62,29 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Initialize Database
+        db = AppDatabase.getDatabase(this);
+        attendanceDao = db.attendanceDao();
+
         dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         deviceAdmin = new ComponentName(this, MyDeviceAdminReceiver.class);
 
-        prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        isClockedIn = prefs.getBoolean(KEY_IS_CLOCKED_IN, false);
-
         statusText = findViewById(R.id.statusText);
+        pinInput = findViewById(R.id.pinInput);
         btnClockIn = findViewById(R.id.btnClockIn);
         btnClockOut = findViewById(R.id.btnClockOut);
 
-        btnClockIn.setOnClickListener(v -> {
-            setClockState(true);
-            Toast.makeText(this, R.string.msg_clocked_in, Toast.LENGTH_SHORT).show();
-        });
-
-        btnClockOut.setOnClickListener(v -> {
-            setClockState(false);
-            Toast.makeText(this, R.string.msg_clocked_out, Toast.LENGTH_SHORT).show();
-        });
+        btnClockIn.setOnClickListener(v -> processClockEvent(true));
+        btnClockOut.setOnClickListener(v -> processClockEvent(false));
 
         statusText.setOnLongClickListener(v -> {
             showAdminDialog();
             return true;
         });
 
-        updateUI();
+        // Initialize with default state
+        updateUI(null, false);
+        bootstrapTestEmployee();
 
         if (!hasUsageStatsPermission()) {
             Toast.makeText(this, "Please enable Usage Access", Toast.LENGTH_LONG).show();
@@ -95,9 +96,74 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                // Do nothing to keep the user in the app
+                // Keep the user in the app
             }
         });
+    }
+
+    private void bootstrapTestEmployee() {
+        executorService.execute(() -> {
+            if (attendanceDao.getAllEmployees().isEmpty()) {
+                attendanceDao.insertEmployee(new Employee("Test User", "1234"));
+            }
+        });
+    }
+
+    private void processClockEvent(boolean isClockIn) {
+        String pin = pinInput.getText().toString();
+        if (pin.isEmpty()) {
+            Toast.makeText(this, "Please enter a PIN", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        executorService.execute(() -> {
+            Employee employee = attendanceDao.getEmployeeByBadgeId(pin);
+
+            if (employee == null) {
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "Invalid PIN", Toast.LENGTH_SHORT).show();
+                    pinInput.setText("");
+                });
+                return;
+            }
+
+            // Optional check for current status
+            if (employee.isClockedIn == isClockIn) {
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, employee.name + " 1233is already " +
+                            (isClockIn ? "clocked in" : "clocked out"), Toast.LENGTH_SHORT).show();
+                    pinInput.setText("");
+                });
+                return;
+            }
+
+            // Update Employee
+            employee.isClockedIn = isClockIn;
+            attendanceDao.updateEmployee(employee);
+
+            // Record Attendance
+            AttendanceRecord record = new AttendanceRecord(employee.id,
+                    System.currentTimeMillis(), isClockIn ? "IN" : "OUT"
+            );
+            attendanceDao.insertRecord(record);
+
+            runOnUiThread(() -> {
+                updateUI(employee.name, isClockIn);
+                pinInput.setText("");
+                Toast.makeText(MainActivity.this, "Success: " + employee.name,
+                        Toast.LENGTH_SHORT).show();
+            });
+        });
+    }
+
+    private void updateUI(String employeeName, boolean isClockedIn) {
+        if (employeeName == null) {
+            statusText.setText("Enter PIN to Clock In/Out");
+        } else {
+            statusText.setText(employeeName + " successfully " + (isClockedIn ? "clocked in" : "clocked out"));
+        }
+        btnClockIn.setEnabled(true);
+        btnClockOut.setEnabled(true);
     }
 
     private void showAdminDialog() {
@@ -166,24 +232,6 @@ public class MainActivity extends AppCompatActivity {
         lockHandler.removeCallbacks(lockRunnable);
     }
 
-    private void setClockState(boolean clockedIn) {
-        isClockedIn = clockedIn;
-        prefs.edit().putBoolean(KEY_IS_CLOCKED_IN, isClockedIn).apply();
-        updateUI();
-    }
-
-    private void updateUI() {
-        if (isClockedIn) {
-            statusText.setText(R.string.status_clocked_in);
-            btnClockIn.setEnabled(false);
-            btnClockOut.setEnabled(true);
-        } else {
-            statusText.setText(R.string.status_not_clocked_in);
-            btnClockIn.setEnabled(true);
-            btnClockOut.setEnabled(false);
-        }
-    }
-
     private boolean hasUsageStatsPermission() {
         AppOpsManager appOps = (AppOpsManager) getSystemService(Context.APP_OPS_SERVICE);
         if (appOps == null) return false;
@@ -217,5 +265,11 @@ public class MainActivity extends AppCompatActivity {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(intent);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        executorService.shutdown();
     }
 }
