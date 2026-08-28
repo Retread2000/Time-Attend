@@ -1,7 +1,7 @@
 package com.example.timeattend;
 
 import android.app.ActivityManager;
-import android.app.AlertDialog;
+import androidx.appcompat.app.AlertDialog;
 import android.app.AppOpsManager;
 import android.app.admin.DevicePolicyManager;
 import android.app.usage.UsageStats;
@@ -16,8 +16,10 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.text.InputType;
 import android.util.Log;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.util.Calendar;
@@ -189,11 +191,24 @@ public class MainActivity extends AppCompatActivity {
     private void showAdminDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.admin_access);
+        builder.setCancelable(false); // Prevents accidental closing
 
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         input.setHint(R.string.enter_password);
-        builder.setView(input);
+
+        // Wrap EditText in a FrameLayout to add padding/margins
+        FrameLayout container = new FrameLayout(this);
+        FrameLayout.LayoutParams params = new  FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        int margin = (int) (24 * getResources().getDisplayMetrics().density);
+        params.leftMargin = margin;
+        params.rightMargin = margin;
+        params.topMargin = margin / 4;
+        input.setLayoutParams(params);
+        container.addView(input);
+        builder.setView(container);
 
         builder.setPositiveButton(R.string.exit_kiosk, (dialog, which) -> {
             String password = input.getText().toString();
@@ -203,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.invalid_password, Toast.LENGTH_SHORT).show();
             }
         });
-        builder.setNegativeButton(R.string.cancel, (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss());
 
         builder.show();
     }
@@ -212,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
         if (dpm != null && dpm.isDeviceOwnerApp(getPackageName())) {
             dpm.setLockTaskPackages(deviceAdmin, new String[]{getPackageName()});
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                // Disable system features (status bar, notifications, etc.)
+                // Disable all system features (status bar, notifications, etc.) for a true locked kiosk
                 dpm.setLockTaskFeatures(deviceAdmin, DevicePolicyManager.LOCK_TASK_FEATURE_NONE);
             }
             startLockTask();

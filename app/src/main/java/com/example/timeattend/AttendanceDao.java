@@ -37,4 +37,9 @@ public interface AttendanceDao {
 
     @Query("SELECT SUM(timeLogged) FROM attendance_records " + "WHERE attendanceId = :empId AND timestamp >= :weekStart")
     long getWeeklyTimeLogged(int empId, long weekStart);  // see total time logged for the week
+
+    @Query("SELECT employees.name AS employeeName, SUM(attendance_records.timeLogged) AS totalSeconds " +
+            "FROM employees " + "INNER JOIN attendance_records ON employees.id = attendance_records.attendanceId " +
+            "WHERE attendance_records.timestamp >= :weekStart " + "GROUP BY employees.id")
+    List<EmployeeWeeklyTimeClocked> getAllWeeklyTotals(long weekStart);   // get total time logged for all employees for the week
 }
