@@ -9,6 +9,7 @@ import android.app.usage.UsageStatsManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -210,6 +211,10 @@ public class MainActivity extends AppCompatActivity {
     private void setupKioskMode() {
         if (dpm != null && dpm.isDeviceOwnerApp(getPackageName())) {
             dpm.setLockTaskPackages(deviceAdmin, new String[]{getPackageName()});
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                // Disable system features (status bar, notifications, etc.)
+                dpm.setLockTaskFeatures(deviceAdmin, DevicePolicyManager.LOCK_TASK_FEATURE_NONE);
+            }
             startLockTask();
         } else {
             startKioskModeFallback();
