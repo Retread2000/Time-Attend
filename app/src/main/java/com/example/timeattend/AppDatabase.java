@@ -5,7 +5,7 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-@Database(entities = {Employee.class, AttendanceRecord.class}, version = 1, exportSchema = false)
+@Database(entities = {Employee.class, AttendanceRecord.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     public abstract AttendanceDao attendanceDao();  // DAO for database operations
     private static volatile AppDatabase INSTANCE;   // singleton instance & crash prevention

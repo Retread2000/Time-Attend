@@ -19,6 +19,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.util.Calendar;
+import java.util.Locale;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
@@ -87,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
         bootstrapTestEmployee();
 
         if (!hasUsageStatsPermission()) {
-            Toast.makeText(this, "Please enable Usage Access", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.msg_usage_access, Toast.LENGTH_LONG).show();
             startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS));
         }
 
@@ -112,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
     private void processClockEvent(boolean isClockIn) {
         String pin = pinInput.getText().toString();
         if (pin.isEmpty()) {
-            Toast.makeText(this, "Please enter a PIN", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.msg_enter_pin, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -121,47 +123,64 @@ public class MainActivity extends AppCompatActivity {
 
             if (employee == null) {
                 runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "Invalid PIN", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.msg_invalid_pin, Toast.LENGTH_SHORT).show();
                     pinInput.setText("");
                 });
                 return;
             }
 
-            // Optional check for current status
+            // check for current status
             if (employee.isClockedIn == isClockIn) {
                 runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, employee.name + " 1233is already " +
-                            (isClockIn ? "clocked in" : "clocked out"), Toast.LENGTH_SHORT).show();
+                    String action = getString(isClockIn ? R.string.label_clocked_in : R.string.label_clocked_out);
+                    Toast.makeText(MainActivity.this, getString(R.string.msg_already_clocked, employee.name, action), Toast.LENGTH_SHORT).show();
                     pinInput.setText("");
                 });
                 return;
             }
+
+            // Initialize local variables for calculating time clocked in
+            long currentTime = System.currentTimeMillis();
+            long duration = 0;
+
+            // Calculate duration upon clocking out
+            if (!isClockIn) {
+                AttendanceRecord lastRecord = attendanceDao.getLastRecordForEmployee(employee.id);
+                if (lastRecord != null && "IN".equals(lastRecord.type)) {
+                    duration = (currentTime - lastRecord.timestamp) / 1000;
+                }
+            }
+            final long clockInDuration = duration;
 
             // Update Employee
             employee.isClockedIn = isClockIn;
             attendanceDao.updateEmployee(employee);
 
             // Record Attendance
-            AttendanceRecord record = new AttendanceRecord(employee.id,
-                    System.currentTimeMillis(), isClockIn ? "IN" : "OUT"
-            );
+            AttendanceRecord record = new AttendanceRecord(employee.id, currentTime, isClockIn ? "IN" : "OUT");
+            record.timeLogged = clockInDuration;
             attendanceDao.insertRecord(record);
 
+            // Calculate Weekly Total Time
+            long weekStart = getStartOfWeekTimestamp();
+            long weeklyTotalSeconds = attendanceDao.getWeeklyTimeLogged(employee.id, weekStart);
+            String weeklyTotalStr = formatDuration(weeklyTotalSeconds);
+
             runOnUiThread(() -> {
-                updateUI(employee.name, isClockIn);
                 pinInput.setText("");
-                Toast.makeText(MainActivity.this, "Success: " + employee.name,
-                        Toast.LENGTH_SHORT).show();
+                if (isClockIn) {
+                    String msg = getString(R.string.msg_success_clock_in, employee.name);
+                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+                } else {
+                    String msg = getString(R.string.msg_success_clock_out, employee.name, formatDuration(clockInDuration), weeklyTotalStr);
+                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+                }
             });
         });
     }
 
     private void updateUI(String employeeName, boolean isClockedIn) {
-        if (employeeName == null) {
-            statusText.setText("Enter PIN to Clock In/Out");
-        } else {
-            statusText.setText(employeeName + " successfully " + (isClockedIn ? "clocked in" : "clocked out"));
-        }
+        statusText.setText(R.string.initial_status);
         btnClockIn.setEnabled(true);
         btnClockOut.setEnabled(true);
     }
@@ -265,6 +284,22 @@ public class MainActivity extends AppCompatActivity {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(intent);
         }
+    }
+
+    private long getStartOfWeekTimestamp() {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTimeInMillis();
+    }
+
+    private String formatDuration(long totalSeconds) {
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        return String.format(Locale.getDefault(), "%dh %02dm", hours, minutes);
     }
 
     @Override

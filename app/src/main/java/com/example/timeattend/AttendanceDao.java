@@ -34,4 +34,7 @@ public interface AttendanceDao {
 
     @Query("SELECT * FROM attendance_records WHERE attendanceId = :attendId ORDER BY timestamp DESC LIMIT 1")
     AttendanceRecord getLastRecordForEmployee(int attendId);    // see last attendance record for an employee
+
+    @Query("SELECT SUM(timeLogged) FROM attendance_records " + "WHERE attendanceId = :empId AND timestamp >= :weekStart")
+    long getWeeklyTimeLogged(int empId, long weekStart);  // see total time logged for the week
 }
