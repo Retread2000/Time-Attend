@@ -37,3 +37,10 @@ Connect the device to your computer and execute the following command in PowerSh
 
 ```powershell
 & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" shell dpm set-device-owner com.example.timeattend/.MyDeviceAdminReceiver
+```
+
+### 3. Kiosk Mode Temporarily Disabled for Testing
+Uncomment this line to enable kiosk mode function.
+```java
+// startLockTask(); // Temporarily commented out for testing
+```
