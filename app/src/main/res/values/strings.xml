@@ -2,14 +2,13 @@
     <string name="app_name">Time Attend</string>
     <string name="initial_status">Enter PIN to Clock In/Out</string>
     <string name="hint_pin">Enter PIN</string>
-    <string name="btn_clock_in">Clock In</string>
-    <string name="btn_clock_out">Clock Out</string>
+    <string name="btn_clock_toggle">Clock In / Out</string>
+    <string name="btn_admin">Admin Settings</string>
 
     <string name="msg_enter_pin">Please enter PIN</string>
     <string name="msg_invalid_pin">Invalid PIN</string>
-    <string name="msg_already_clocked">%1$s is already %2$s</string>
     <string name="msg_success_clock_in">%1$s successfully clocked in.</string>
-    <string name="msg_success_clock_out">%1$s successfully clocked out.\nShift: %2$s\nWeekly Total: %3$s</string>
+    <string name="msg_success_clock_out">%1$s successfully clocked out.</string>
     <string name="msg_usage_access">Please enable Usage Access</string>
 
     <string name="label_clocked_in">clocked in</string>

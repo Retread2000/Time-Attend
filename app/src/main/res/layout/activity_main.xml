@@ -5,6 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:padding="32dp"
     tools:context=".MainActivity">
 
     <TextView
@@ -12,46 +13,56 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/initial_status"
-        android:textSize="24sp"
-        app:layout_constraintBottom_toTopOf="@+id/pinInput"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorPrimary"
+        app:layout_constraintBottom_toTopOf="@+id/pinInputLayout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="packed" />
 
-    <EditText
-        android:id="@+id/pinInput"
-        android:layout_width="200dp"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/pinInputLayout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="300dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="32dp"
         android:hint="@string/hint_pin"
-        android:inputType="numberPassword"
-        android:gravity="center"
-        app:layout_constraintBottom_toTopOf="@+id/btnClockIn"
+        app:layout_constraintBottom_toTopOf="@+id/btnClockToggle"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/statusText" />
+        app:layout_constraintTop_toBottomOf="@+id/statusText">
 
-    <Button
-        android:id="@+id/btnClockIn"
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="@string/btn_clock_in"
-        app:layout_constraintBottom_toTopOf="@+id/btnClockOut"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/pinInput" />
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/pinInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:inputType="numberPassword"
+            android:textSize="24sp" />
+    </com.google.android.material.textfield.TextInputLayout>
 
-    <Button
-        android:id="@+id/btnClockOut"
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/btn_clock_out"
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnClockToggle"
+        android:layout_width="300dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="32dp"
+        android:text="@string/btn_clock_toggle"
+        android:textSize="20sp"
+        app:cornerRadius="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnClockIn" />
+        app:layout_constraintTop_toBottomOf="@+id/pinInputLayout" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAdmin"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/btn_admin"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
